@@ -178,7 +178,7 @@ def list_tasks():
             "difficulty": "easy",
             "description": "Classify a security incident alert as CRITICAL, HIGH, MEDIUM, or LOW",
             "max_steps": 3,
-            "score_range": [0.0, 1.0],
+            "score_range": [0.01, 0.99],
         },
         {
             "id": "identify-attack-vector",
@@ -186,7 +186,7 @@ def list_tasks():
             "difficulty": "medium",
             "description": "Identify the specific attack vector from a MITRE ATT&CK-inspired taxonomy",
             "max_steps": 3,
-            "score_range": [0.0, 1.0],
+            "score_range": [0.01, 0.99],
             "taxonomy": ATTACK_VECTORS,
         },
         {
@@ -195,7 +195,7 @@ def list_tasks():
             "difficulty": "hard",
             "description": "Write a structured incident remediation playbook",
             "max_steps": 3,
-            "score_range": [0.0, 1.0],
+            "score_range": [0.01, 0.99],
         },
     ]
 

@@ -28,7 +28,7 @@ def grade_severity(response: str, incident: dict, step_count: int, max_steps: in
     reason = incident["reason"]
 
     if resp == correct:
-        return {"score": 1.0, "feedback": f"Correct! Severity is {correct}. {reason}", "done": True, "partial": False}
+        return {"score": 0.99, "feedback": f"Correct! Severity is {correct}. {reason}", "done": True, "partial": False}
 
     if resp in SEVERITY_LEVELS:
         correct_idx = SEVERITY_LEVELS.index(correct)
@@ -42,7 +42,7 @@ def grade_severity(response: str, incident: dict, step_count: int, max_steps: in
             score = 0.25
             feedback = f"Off by 2 levels — you said {resp}, correct is {correct}. {reason}"
         else:
-            score = 0.0
+            score = 0.01
             feedback = f"Wrong — you said {resp}, correct is {correct}. {reason}"
 
         return {"score": score, "feedback": feedback, "done": True, "partial": score > 0}
@@ -54,7 +54,7 @@ def grade_severity(response: str, incident: dict, step_count: int, max_steps: in
             "done": False,
             "partial": True,
         }
-    return {"score": 0.0, "feedback": f"Invalid format. Correct severity was {correct}.", "done": True, "partial": False}
+    return {"score": 0.01, "feedback": f"Invalid format. Correct severity was {correct}.", "done": True, "partial": False}
 
 
 def grade_attack_vector(response: str, incident: dict, step_count: int, max_steps: int) -> dict:
@@ -70,7 +70,7 @@ def grade_attack_vector(response: str, incident: dict, step_count: int, max_step
     correct_phase = incident["kill_chain_phase"]
 
     if resp == correct:
-        return {"score": 1.0, "feedback": f"Perfect! Attack vector: {correct}. {explanation}", "done": True, "partial": False}
+        return {"score": 0.99, "feedback": f"Perfect! Attack vector: {correct}. {explanation}", "done": True, "partial": False}
 
     valid = [v.upper() for v in ATTACK_VECTORS]
     in_taxonomy = resp in valid
@@ -116,7 +116,7 @@ def grade_attack_vector(response: str, incident: dict, step_count: int, max_step
             "feedback": f"Invalid response. Choose exactly one from: {taxonomy_str}",
             "done": False, "partial": True,
         }
-    return {"score": 0.0, "feedback": f"Incorrect. Correct: {correct}. {explanation}", "done": True, "partial": False}
+    return {"score": 0.01, "feedback": f"Incorrect. Correct: {correct}. {explanation}", "done": True, "partial": False}
 
 
 def grade_remediation(response: str, incident: dict, step_count: int, max_steps: int) -> dict:
@@ -128,11 +128,11 @@ def grade_remediation(response: str, incident: dict, step_count: int, max_steps:
     if len(response) < 50:
         if step_count < max_steps:
             return {
-                "score": 0.0,
+                "score": 0.01,
                 "feedback": "Too short. Write a complete remediation playbook with CONTAINMENT, ERADICATION, and RECOVERY sections.",
                 "done": False, "partial": False,
             }
-        return {"score": 0.0, "feedback": "Response too short to be a valid remediation playbook.", "done": True, "partial": False}
+        return {"score": 0.01, "feedback": "Response too short to be a valid remediation playbook.", "done": True, "partial": False}
 
     resp_lower = response.lower()
     keywords = incident["remediation_keywords"]
@@ -166,7 +166,7 @@ def grade_remediation(response: str, incident: dict, step_count: int, max_steps:
     if 200 < len(response) < 2000:
         raw_score += 0.05
 
-    score = round(min(1.0, max(0.0, raw_score)), 2)
+    score = round(min(0.99, max(0.01, raw_score)), 2)
 
     if score >= 0.75:
         feedback = (
