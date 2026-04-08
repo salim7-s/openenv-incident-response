@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "openenv-incident-response"
+version = "0.1.0"
+description = "OpenEnv environment for cybersecurity incident response triage and remediation"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Team Envonox" }
+]
+keywords = ["openenv", "cybersecurity", "incident-response", "ai", "rl"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "pydantic>=2.0.0",
+    "requests>=2.31.0",
+    "python-multipart>=0.0.6",
+]
+
+[project.optional-dependencies]
+inference = [
+    "openai>=1.0.0",
+    "anthropic>=0.20.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "httpx>=0.25.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["server*"]
+
+[project.urls]
+Homepage = "https://huggingface.co/spaces/zizoha/openenv-incident-response"
+Repository = "https://github.com/salim7-s/openenv-incident-response"
