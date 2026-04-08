@@ -1,0 +1,42 @@
+version: "1.0"
+metadata:
+  name: "Incident Response Commander"
+  description: "An OpenEnv environment for cybersecurity incident response triage and remediation."
+  version: "1.0.0"
+  author: "Team Envonox"
+  tags: ["cybersecurity", "incident-response", "SOC", "MITRE-ATT&CK", "NLP", "RL"]
+  inference_script: "inference.py"
+
+environment:
+  type: "text"
+  observation_space:
+    type: "dict"
+    description: "Contains alert summary, log excerpts, network indicators, affected systems, and task instructions."
+  action_space:
+    type: "dict"
+    description: "Actions include text responses: severity labels, attack vector labels, or remediation playbooks."
+
+endpoints:
+  reset: "/reset"
+  step: "/step"
+  state: "/state"
+  tasks: "/tasks"
+  grader: "/grader"
+  baseline: "/baseline"
+
+tasks:
+  - id: classify-severity
+    name: "Classify Incident Severity"
+    difficulty: easy
+    description: "Classify a security incident alert as CRITICAL, HIGH, MEDIUM, or LOW."
+    score_range: [0.0, 1.0]
+  - id: identify-attack-vector
+    name: "Identify Attack Vector"
+    difficulty: medium
+    description: "Identify the specific attack vector from a 12-label MITRE ATT&CK-inspired taxonomy."
+    score_range: [0.0, 1.0]
+  - id: write-remediation
+    name: "Write Remediation Playbook"
+    difficulty: hard
+    description: "Write a structured incident remediation playbook with containment, eradication, and recovery sections."
+    score_range: [0.0, 1.0]

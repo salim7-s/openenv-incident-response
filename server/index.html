@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Incident Response Commander — OpenEnv</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+    :root {
+      --bg: #0b0e14;
+      --surface: #141820;
+      --surface2: #1a1f2b;
+      --surface3: #222838;
+      --border: #2a3040;
+      --border-hover: #3a4258;
+      --text: #e4e8f0;
+      --text-muted: #8892a6;
+      --text-dim: #5a6478;
+      --accent: #3b82f6;
+      --accent2: #6366f1;
+      --green: #10b981;
+      --green-dim: #10b98130;
+      --red: #ef4444;
+      --red-dim: #ef444425;
+      --yellow: #f59e0b;
+      --yellow-dim: #f59e0b25;
+      --orange: #f97316;
+      --purple: #a855f7;
+      --cyan: #06b6d4;
+      --radius: 14px;
+      --radius-sm: 10px;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── Animated background grid ─────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 30%, #3b82f608 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 70%, #a855f706 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app { position: relative; z-index: 1; }
+
+    /* ── Header ──────────────────────────────────── */
+    .header {
+      background: linear-gradient(135deg, #111827 0%, #0b1120 50%, #14102a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), var(--purple), transparent);
+      opacity: 0.5;
+    }
+    .header-inner {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .logo-area { display: flex; align-items: center; gap: 14px; }
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 20px #3b82f640;
+    }
+    .logo-text h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .logo-text p { font-size: 0.75rem; color: var(--text-muted); }
+    .header-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.68rem; font-weight: 700; padding: 4px 10px;
+      border-radius: 999px; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .badge-live { background: var(--green-dim); color: var(--green); border: 1px solid #10b98140; }
+    .badge-ver { background: #6366f118; color: var(--accent2); border: 1px solid #6366f130; }
+    .badge-env { background: #06b6d415; color: var(--cyan); border: 1px solid #06b6d430; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+    /* ── Container ───────────────────────────────── */
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 20px 24px 60px;
+    }
+
+    /* ── Stats Row ───────────────────────────────── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      width: var(--bar, 0%);
+      height: 3px;
+      border-radius: 0 3px 0 0;
+      transition: width .6s ease;
+    }
+    .stat-card:nth-child(1)::after { background: var(--red); }
+    .stat-card:nth-child(2)::after { background: var(--green); }
+    .stat-card:nth-child(3)::after { background: var(--yellow); }
+    .stat-card:nth-child(4)::after { background: var(--cyan); }
+    .stat-label {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 1.6rem; font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      line-height: 1;
+    }
+    .stat-value.red { color: var(--red); }
+    .stat-value.green { color: var(--green); }
+    .stat-value.yellow { color: var(--yellow); }
+    .stat-value.cyan { color: var(--cyan); }
+
+    /* ── Action Buttons ──────────────────────────── */
+    .action-bar {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 10px 18px; border: none; border-radius: var(--radius-sm);
+      font-family: 'Inter', sans-serif; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .btn-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; box-shadow: 0 2px 12px #3b82f640; }
+    .btn-green { background: linear-gradient(135deg, #10b981, #059669); color: #fff; box-shadow: 0 2px 12px #10b98140; }
+    .btn-orange { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; box-shadow: 0 2px 12px #f59e0b40; }
+    .btn-purple { background: linear-gradient(135deg, #a855f7, #7c3aed); color: #fff; box-shadow: 0 2px 12px #a855f740; }
+    .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+    .btn:active { transform: translateY(0); }
+    .btn .spinner {
+      display: none; width: 14px; height: 14px;
+      border: 2px solid transparent; border-top-color: #fff;
+      border-radius: 50%; animation: spin .5s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .ep-status { margin-left: auto; font-size: 0.8rem; color: var(--text-muted); }
+
+    /* ── Main Grid Layout ────────────────────────── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 16px;
+    }
+
+    /* ── Card ─────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: border-color .2s;
+    }
+    .card:hover { border-color: var(--border-hover); }
+    .card-title {
+      font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--text-muted);
+      margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    }
+    .card-title .emoji { font-size: 1.1rem; }
+
+    /* ── Incident Preview ────────────────────────── */
+    .incident-preview {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      max-height: 300px;
+      overflow: auto;
+    }
+    .incident-preview .field-label {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--accent); margin-top: 10px;
+    }
+    .incident-preview .field-label:first-child { margin-top: 0; }
+    .incident-preview .field-value {
+      font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;
+      line-height: 1.5;
+    }
+    .incident-preview pre {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+      color: var(--green); background: #0d1117; padding: 8px 10px;
+      border-radius: 6px; margin-top: 4px; overflow-x: auto; white-space: pre-wrap;
+    }
+
+    /* ── Task Scores ─────────────────────────────── */
+    .task-score-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 10px;
+    }
+    .task-score-label {
+      font-size: 0.78rem; font-weight: 600; min-width: 90px;
+    }
+    .task-score-bar-bg {
+      flex: 1; height: 10px; background: var(--bg);
+      border-radius: 5px; overflow: hidden;
+    }
+    .task-score-bar {
+      height: 100%; border-radius: 5px; transition: width .6s ease;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+    }
+    .task-score-val {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
+      font-weight: 700; min-width: 42px; text-align: right;
+    }
+
+    /* ── Right Sidebar ───────────────────────────── */
+    .sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+    /* ── Take Action Form ────────────────────────── */
+    label {
+      display: block; font-size: 0.72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-muted); margin-bottom: 6px;
+    }
+    select, input, textarea {
+      width: 100%; padding: 10px 13px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      font-family: 'Inter', sans-serif; font-size: 0.84rem;
+      outline: none; transition: border-color .2s, box-shadow .2s;
+    }
+    select:focus, input:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px #3b82f618;
+    }
+    textarea {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem; min-height: 100px; resize: vertical;
+    }
+    .form-group { margin-bottom: 14px; }
+
+    /* ── System Log ──────────────────────────────── */
+    .log-area {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      line-height: 1.8;
+      max-height: 300px;
+      overflow: auto;
+      color: var(--text-muted);
+    }
+    .log-entry { border-bottom: 1px solid #1a1f2b; padding: 3px 0; }
+    .log-entry:last-child { border-bottom: none; }
+    .log-time { color: var(--text-dim); }
+    .log-ok { color: var(--green); }
+    .log-warn { color: var(--yellow); }
+    .log-err { color: var(--red); }
+    .log-info { color: var(--accent); }
+
+    /* ── Responsive ──────────────────────────────── */
+    @media (max-width: 860px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .main-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      .stats-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-inner">
+      <div class="logo-area">
+        <div class="logo-icon">🛡️</div>
+        <div class="logo-text">
+          <h1>Incident Response Commander</h1>
+          <p>OpenEnv Interactive Environment</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="badge badge-env">OPENENV 1.0</span>
+        <span class="badge badge-ver">v1.0.0</span>
+        <span class="badge badge-live"><span class="dot"></span> LIVE</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card" style="--bar:0%">
+        <div class="stat-label">Current Task</div>
+        <div class="stat-value red" id="statTask">—</div>
+      </div>
+      <div class="stat-card" style="--bar:0%">
+        <div class="stat-label">Last Reward</div>
+        <div class="stat-value green" id="statReward">—</div>
+      </div>
+      <div class="stat-card" style="--bar:0%">
+        <div class="stat-label">Steps Taken</div>
+        <div class="stat-value yellow" id="statSteps">0</div>
+      </div>
+      <div class="stat-card" style="--bar:0%">
+        <div class="stat-label">Episode Status</div>
+        <div class="stat-value cyan" id="statStatus">Idle</div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-bar">
+      <button class="btn btn-blue" id="resetBtn" onclick="resetEnv()">
+        <span class="spinner" id="spinReset"></span>🔄 Reset Environment
+      </button>
+      <button class="btn btn-green" id="baselineBtn" onclick="runBaseline()">
+        <span class="spinner" id="spinBaseline"></span>🤖 Run Baseline Agent
+      </button>
+      <button class="btn btn-orange" id="gradeBtn" onclick="gradeAll()">
+        <span class="spinner" id="spinGrade"></span>📊 Grade Tasks
+      </button>
+      <button class="btn btn-ghost" onclick="window.open('/docs','_blank')">📄 API Docs</button>
+      <span class="ep-status" id="epStatus">Episode: <strong>Not started</strong></span>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="main-grid">
+
+      <!-- Left Column -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+
+        <!-- Incident Preview -->
+        <div class="card">
+          <div class="card-title"><span class="emoji">🚨</span> Incident Alert</div>
+          <div class="incident-preview" id="incidentPreview">
+            <div style="text-align:center;color:var(--text-dim);padding:30px 0">
+              Click <strong>Reset Environment</strong> to load an incident
+            </div>
+          </div>
+        </div>
+
+        <!-- Task Scores -->
+        <div class="card">
+          <div class="card-title"><span class="emoji">🎯</span> Task Scores</div>
+          <div class="task-score-row">
+            <span class="task-score-label" style="color:var(--green)">Easy</span>
+            <div class="task-score-bar-bg"><div class="task-score-bar" id="bar1" style="width:0%"></div></div>
+            <span class="task-score-val" id="score1">—</span>
+          </div>
+          <div class="task-score-row">
+            <span class="task-score-label" style="color:var(--yellow)">Medium</span>
+            <div class="task-score-bar-bg"><div class="task-score-bar" id="bar2" style="width:0%;background:linear-gradient(90deg,var(--yellow),var(--orange))"></div></div>
+            <span class="task-score-val" id="score2">—</span>
+          </div>
+          <div class="task-score-row">
+            <span class="task-score-label" style="color:var(--red)">Hard</span>
+            <div class="task-score-bar-bg"><div class="task-score-bar" id="bar3" style="width:0%;background:linear-gradient(90deg,var(--red),var(--purple))"></div></div>
+            <span class="task-score-val" id="score3">—</span>
+          </div>
+        </div>
+
+        <!-- System Log -->
+        <div class="card">
+          <div class="card-title"><span class="emoji">📋</span> System Log</div>
+          <div class="log-area" id="logArea">
+            <div class="log-entry"><span class="log-time">[init]</span> <span class="log-info">Environment server ready. Select a task and reset.</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Sidebar -->
+      <div class="sidebar">
+
+        <!-- Take Action -->
+        <div class="card">
+          <div class="card-title"><span class="emoji">⚡</span> Take Action</div>
+
+          <div class="form-group">
+            <label for="taskSelect">Task</label>
+            <select id="taskSelect">
+              <option value="classify-severity">🟢 Classify Severity (Easy)</option>
+              <option value="identify-attack-vector">🟡 Identify Attack Vector (Medium)</option>
+              <option value="write-remediation">🔴 Write Remediation (Hard)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="responseInput">Agent Response</label>
+            <textarea id="responseInput" placeholder="CRITICAL&#10;&#10;or a full remediation playbook..."></textarea>
+          </div>
+
+          <button class="btn btn-blue" style="width:100%" onclick="submitStep()">
+            <span class="spinner" id="spinStep"></span>⚡ Submit Step
+          </button>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+          <div class="card-title"><span class="emoji">🔗</span> Quick Links</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="fetchJSON('/state')">📊 Get State</button>
+            <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="fetchJSON('/tasks')">📋 List Tasks</button>
+            <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="fetchJSON('/health')">💚 Health Check</button>
+            <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="fetchJSON('/schema')">🔧 View Schema</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────
+  let currentObs = null;
+
+  // ── Helpers ────────────────────────────────────
+  function $(id) { return document.getElementById(id); }
+
+  function showSpin(id) { $(id).style.display = 'inline-block'; }
+  function hideSpin(id) { $(id).style.display = 'none'; }
+
+  function addLog(type, msg) {
+    const area = $('logArea');
+    const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+    const cls = { ok: 'log-ok', warn: 'log-warn', err: 'log-err', info: 'log-info' }[type] || 'log-info';
+    area.innerHTML += `<div class="log-entry"><span class="log-time">[${time}]</span> <span class="${cls}">${msg}</span></div>`;
+    area.scrollTop = area.scrollHeight;
+  }
+
+  function updateStats(data) {
+    const obs = data.observation || data;
+    if (obs.task_id) $('statTask').textContent = obs.task_id.split('-').pop();
+    if (data.reward !== undefined && data.reward !== null) $('statReward').textContent = parseFloat(data.reward).toFixed(2);
+    if (obs.step !== undefined) $('statSteps').textContent = obs.step + ' / ' + (obs.max_steps || 3);
+    $('statStatus').textContent = data.done ? '✅ Done' : '🔄 Active';
+    $('epStatus').innerHTML = 'Episode: <strong>' + (data.done ? 'Complete' : 'In Progress') + '</strong>';
+  }
+
+  function renderIncident(obs) {
+    let html = '';
+    if (obs.instruction) {
+      html += `<div class="field-label">Instruction</div><div class="field-value">${obs.instruction}</div>`;
+    }
+    if (obs.alert_summary) {
+      html += `<div class="field-label">Alert Summary</div><div class="field-value">${obs.alert_summary}</div>`;
+    }
+    if (obs.log_excerpt) {
+      html += `<div class="field-label">Log Excerpt</div><pre>${obs.log_excerpt}</pre>`;
+    }
+    if (obs.network_indicators) {
+      html += `<div class="field-label">Network Indicators</div><div class="field-value">${obs.network_indicators}</div>`;
+    }
+    if (obs.affected_systems) {
+      html += `<div class="field-label">Affected Systems</div><div class="field-value">${obs.affected_systems}</div>`;
+    }
+    if (obs.timeline) {
+      html += `<div class="field-label">Timeline</div><div class="field-value">${obs.timeline}</div>`;
+    }
+    if (obs.attack_taxonomy) {
+      html += `<div class="field-label">Valid Labels</div><div class="field-value" style="font-family:'JetBrains Mono',monospace;font-size:0.72rem">${obs.attack_taxonomy.join(', ')}</div>`;
+    }
+    $('incidentPreview').innerHTML = html || '<div style="text-align:center;color:var(--text-dim);padding:20px 0">No incident loaded</div>';
+  }
+
+  function updateScores(scores) {
+    const map = {
+      'classify-severity': ['bar1', 'score1'],
+      'identify-attack-vector': ['bar2', 'score2'],
+      'write-remediation': ['bar3', 'score3'],
+    };
+    for (const [task, [barId, valId]] of Object.entries(map)) {
+      const s = scores[task];
+      if (s !== undefined) {
+        $(barId).style.width = (s * 100) + '%';
+        $(valId).textContent = s.toFixed(2);
+      }
+    }
+  }
+
+  // ── API Calls ──────────────────────────────────
+  async function resetEnv() {
+    const task = $('taskSelect').value;
+    showSpin('spinReset');
+    addLog('info', `Resetting environment — task: ${task}`);
+    try {
+      const r = await fetch('/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_name: task })
+      });
+      const data = await r.json();
+      currentObs = data.observation || data;
+      renderIncident(currentObs);
+      updateStats(data);
+      addLog('ok', `Reset complete — ${currentObs.task_name || task}`);
+    } catch (e) {
+      addLog('err', `Reset failed: ${e}`);
+    }
+    hideSpin('spinReset');
+  }
+
+  async function submitStep() {
+    const response = $('responseInput').value.trim();
+    if (!response) { addLog('warn', 'Enter a response first.'); return; }
+    showSpin('spinStep');
+    addLog('info', `Submitting step: "${response.substring(0, 80)}${response.length > 80 ? '...' : ''}"`);
+    try {
+      const r = await fetch('/step', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: { response } })
+      });
+      const data = await r.json();
+      currentObs = data.observation || data;
+      updateStats(data);
+
+      const reward = parseFloat(data.reward || 0).toFixed(2);
+      const feedback = data.info?.feedback || '';
+      const color = data.reward >= 0.75 ? 'ok' : data.reward >= 0.25 ? 'warn' : 'err';
+      addLog(color, `Reward: ${reward} | ${feedback}`);
+
+      if (data.done) {
+        addLog('info', '── Episode complete ──');
+        renderIncident({ instruction: 'Episode finished. Reset to start a new one.' });
+      }
+    } catch (e) {
+      addLog('err', `Step failed: ${e}`);
+    }
+    hideSpin('spinStep');
+  }
+
+  async function runBaseline() {
+    showSpin('spinBaseline');
+    addLog('info', 'Running baseline agent on all tasks...');
+    try {
+      const r = await fetch('/baseline');
+      const data = await r.json();
+      updateScores(data.task_scores);
+      addLog('ok', `Baseline complete — Easy: ${data.task_scores['classify-severity']}, Medium: ${data.task_scores['identify-attack-vector']}, Hard: ${data.task_scores['write-remediation']}`);
+    } catch (e) {
+      addLog('err', `Baseline failed: ${e}`);
+    }
+    hideSpin('spinBaseline');
+  }
+
+  async function gradeAll() {
+    showSpin('spinGrade');
+    addLog('info', 'Grading all tasks...');
+    try {
+      const r = await fetch('/grader');
+      const data = await r.json();
+      updateScores(data.task_scores);
+      addLog('ok', `Grading complete — Easy: ${data.task_scores['classify-severity']}, Medium: ${data.task_scores['identify-attack-vector']}, Hard: ${data.task_scores['write-remediation']}`);
+    } catch (e) {
+      addLog('err', `Grading failed: ${e}`);
+    }
+    hideSpin('spinGrade');
+  }
+
+  async function fetchJSON(path) {
+    addLog('info', `GET ${path}`);
+    try {
+      const r = await fetch(path);
+      const data = await r.json();
+      addLog('ok', JSON.stringify(data).substring(0, 300));
+    } catch (e) {
+      addLog('err', `Request failed: ${e}`);
+    }
+  }
+</script>
+</body>
+</html>
